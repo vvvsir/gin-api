@@ -1,6 +1,7 @@
 package kafka
 
 import (
+	"fmt"
 	"github.com/Shopify/sarama"
 	"strings"
 	"testing"
@@ -20,12 +21,22 @@ func TestKafkaSendMessage(t *testing.T) {
 
 	addr := strings.Split(brokerAddr, "m")
 	t.Log("send message")
-	SendMessage(addr, config, topic, sarama.ByteEncoder(msg))
+	if err := SendMessage(addr, config, topic, sarama.ByteEncoder(msg)); err != nil {
+		t.Error(err)
+	}
+
 }
 
 func TestKafkaReceiveMessage(t *testing.T) {
 	addr := strings.Split(brokerAddr, "m")
 	t.Log("receive message")
-	// sarama.OffsetNewest：从当前的偏移量开始消费，sarama.OffsetOldest：从最老的偏移量开始消费
-	Consumer(addr, topic, 0, sarama.OffsetNewest)
+	for {
+		// sarama.OffsetNewest：从当前的偏移量开始消费，sarama.OffsetOldest：从最老的偏移量开始消费
+		msg, err := Consumer(addr, topic, 0, sarama.OffsetNewest)
+		if err != nil {
+			t.Error(err)
+		} else {
+			t.Log(fmt.Sprintf("msg offset: %d, partition: %d, timestamp: %s, value: %s", msg.Offset, msg.Partition, msg.Timestamp.String(), string(msg.Value)))
+		}
+	}
 }

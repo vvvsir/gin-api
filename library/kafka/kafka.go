@@ -6,15 +6,13 @@ import (
 )
 
 // SendMessage 发送消息
-func SendMessage(brokerAddr []string, config *sarama.Config, topic string, value sarama.Encoder) {
+func SendMessage(brokerAddr []string, config *sarama.Config, topic string, value sarama.Encoder) (err error) {
 	producer, err := sarama.NewSyncProducer(brokerAddr, config)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return err
 	}
 	defer func() {
 		if err = producer.Close(); err != nil {
-			fmt.Println(err)
 			return
 		}
 	}()
@@ -24,37 +22,38 @@ func SendMessage(brokerAddr []string, config *sarama.Config, topic string, value
 	}
 	partition, offset, err := producer.SendMessage(msg)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return fmt.Errorf("send message err:%s", err)
 	}
-	fmt.Printf("partition:%d offset:%d\n", partition, offset)
+	return fmt.Errorf("partition:%d offset:%d\n", partition, offset)
 }
 
 // Consumer 消费消息
-func Consumer(brokenAddr []string, topic string, partition int32, offset int64) {
+func Consumer(brokenAddr []string, topic string, partition int32, offset int64) (msg *sarama.ConsumerMessage, err error) {
 	consumer, err := sarama.NewConsumer(brokenAddr, nil)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return nil, err
 	}
 	defer func() {
 		if err = consumer.Close(); err != nil {
-			fmt.Println(err)
 			return
 		}
 	}()
 	partitionConsumer, err := consumer.ConsumePartition(topic, partition, offset)
 	if err != nil {
-		fmt.Println(err)
-		return
+		return nil, err
 	}
 	defer func() {
 		if err = partitionConsumer.Close(); err != nil {
-			fmt.Println(err)
 			return
 		}
 	}()
-	for msg := range partitionConsumer.Messages() {
-		fmt.Printf("partition:%d offset:%d key:%s val:%s\n", msg.Partition, msg.Offset, msg.Key, msg.Value)
+	for {
+		select {
+		case msg := <-partitionConsumer.Messages():
+			return msg, nil
+		case err := <-partitionConsumer.Errors():
+			return nil, err
+		}
 	}
+	return
 }

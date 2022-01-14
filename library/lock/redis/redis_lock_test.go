@@ -3,6 +3,7 @@ package lock
 import (
 	"context"
 	"errors"
+	"github.com/why444216978/gin-api/library/lock"
 	"testing"
 	"time"
 
@@ -30,7 +31,7 @@ func TestNew(t *testing.T) {
 			So(_err, ShouldEqual, err)
 		})
 		Convey("fail", func() {
-			err := ErrClientNil
+			err := lock.ErrClientNil
 
 			_rc, _err := New(nil)
 			So(_rc, ShouldEqual, nil)
