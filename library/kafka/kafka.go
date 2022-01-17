@@ -53,7 +53,8 @@ func Consumer(brokenAddr []string, topic string, partition int32, offset int64) 
 			return msg, nil
 		case err := <-partitionConsumer.Errors():
 			return nil, err
+		default:
+			return
 		}
 	}
-	return
 }
